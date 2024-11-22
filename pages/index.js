@@ -149,11 +149,12 @@ export default function Home() {
                     }
 
                     .form-selection button {
-                        width: 100px;
-                        margin: 10px;
-                        padding: 10px;
-                        font-size: 12px;
-                    }
+                    width: 100px;
+                    margin: 10px;
+                    padding: 10px;
+                    font-size: 12px;
+                    margin-bottom: 5cm; /* Separación del borde inferior */
+}
 
                     .logo {
                         max-width: 150px;
