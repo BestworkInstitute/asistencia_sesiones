@@ -1,228 +1,276 @@
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import React, { useState } from "react";
+import axios from "axios";
 
 export default function Home() {
-    const [email, setEmail] = useState('');
-    const [result, setResult] = useState('');
-    const [showCopy, setShowCopy] = useState(false);
-    const [showFormSelection, setShowFormSelection] = useState(false);
+  const CLAVE_CORRECTA = "BESTWORK2024";
 
-    useEffect(() => {
-        setShowCopy(false);
-        setShowFormSelection(false);
-    }, []);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [clave, setClave] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    nombre: "",
+    celular: "",
+    profesor: "",
+    link: "",
+    sesion: "Onboarding",
+  });
+  const [consoleOutput, setConsoleOutput] = useState([]);
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        setResult('');
-        setShowCopy(false);
-        setShowFormSelection(false);
+  // Login Function
+  const handleLogin = () => {
+    if (clave === CLAVE_CORRECTA) {
+      setIsAuthenticated(true);
+      logToConsole("Login exitoso.");
+    } else {
+      alert("Clave incorrecta");
+    }
+  };
 
-        try {
-            const res = await fetch(`/api/search?email=${encodeURIComponent(email)}`);
-            const data = await res.json();
+  // Search Function
+  const handleSearch = async () => {
+    try {
+      const response = await axios.get(`/api/search?email=${email}`);
+      setPhone(response.data.phone);
+      setFormData({
+        ...formData,
+        celular: cleanCelular(response.data.phone),
+      });
+      setError("");
+      logToConsole(`Número encontrado: ${response.data.phone}`);
+    } catch (err) {
+      setError("No se encuentra el alumno. Conecta con Académico.");
+      logToConsole("Error al buscar el número del alumno.");
+    }
+  };
 
-            if (res.ok) {
-                setResult(data.message);
-                setShowCopy(true);
-                setShowFormSelection(true);
-            } else {
-                setResult(data.message || 'Error al buscar contacto.');
-            }
-        } catch (error) {
-            setResult('Error al conectar con la API.');
-            console.error('Error al realizar la búsqueda:', error);
-        }
-    };
+  // Send Message Function
+  const handleSend = async () => {
+    const flow = "5fe2da67-3c08-484e-8dda-55374024219e";
+    const url = `https://flows.messagebird.com/flows/${flow}/invoke`;
 
-    const copyEmail = () => {
-        navigator.clipboard.writeText(email);
-        alert('Correo copiado al portapapeles');
-    };
+    try {
+      await axios.post(url, null, {
+        params: {
+          CELULAR: formData.celular,
+          NOMBRE: formData.nombre,
+          PROFESOR: formData.profesor,
+          SESION: formData.sesion,
+          LINK: formData.link,
+        },
+      });
+      logToConsole(
+        `Mensaje enviado a ${formData.nombre} (${formData.celular}) con sesión ${formData.sesion}`
+      );
+    } catch (error) {
+      logToConsole("Error enviando mensaje: " + error.message);
+    }
+  };
 
-    const openExternal = (url) => {
-        window.open(url, '_blank');
-    };
+  // Limpieza del número de celular
+  const cleanCelular = (value) => value.replace(/\D/g, "");
 
-    const showForm = (url) => {
-        window.open(url, '_blank');
-    };
+  // Logging Function
+  const logToConsole = (message) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setConsoleOutput((prev) => [...prev, `[${timestamp}] ${message}`]);
+  };
 
-    return (
-        <>
-            <Head>
-                <title>Best Work</title>
-                <meta charSet="UTF-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <style>{`
-                    body, html {
-                        font-family: Arial, sans-serif;
-                        background-color: #f7f8fc;
-                        margin: 0;
-                        padding: 0;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        height: 100%;
-                        width: 100%;
-                        overflow: auto;
-                    }
+  return (
+    <div
+      style={{
+        fontFamily: "Poppins, sans-serif",
+        backgroundColor: "#f4f4f9",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "column",
+        paddingBottom: "4cm",
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          borderRadius: "12px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+          padding: "20px",
+          width: "100%",
+          maxWidth: "600px",
+          textAlign: "center",
+        }}
+      >
+        {/* Logo */}
+        <img
+          src="https://bestwork.cl/wp-content/uploads/2023/05/Logo.png"
+          alt="Logo Bestwork"
+          style={{ maxWidth: "100px", margin: "0 auto 20px" }}
+        />
 
-                    .container {
-                        width: 100%;
-                        max-width: 400px;
-                        background: white;
-                        padding: 20px;
-                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                        border-radius: 8px;
-                        text-align: center;
-                        margin-bottom: 20px;
-                    }
+        {!isAuthenticated ? (
+          <div>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "bold" }}>
+              Iniciar Sesión
+            </h2>
+            <input
+              type="password"
+              placeholder="Clave"
+              value={clave}
+              onChange={(e) => setClave(e.target.value)}
+              style={inputStyle}
+            />
+            <button
+              onClick={handleLogin}
+              style={buttonStyle("#FF7F50")}
+            >
+              Ingresar
+            </button>
+          </div>
+        ) : (
+          <div>
+            {/* Panel de Búsqueda */}
+            <div>
+              <h3 style={{ fontSize: "1rem", fontWeight: "bold" }}>
+                ¿No sabes el número del alumno?
+              </h3>
+              <input
+                type="email"
+                placeholder="Correo del Alumno"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={inputStyle}
+              />
+              <button
+                onClick={handleSearch}
+                style={buttonStyle("#60A5FA")}
+              >
+                Buscar
+              </button>
+              {phone && <p style={{ color: "green" }}>Teléfono: {phone}</p>}
+              {error && <p style={{ color: "red" }}>{error}</p>}
+            </div>
 
-                    .main-buttons, .additional-buttons {
-                        display: flex;
-                        flex-wrap: wrap; 
-                        justify-content: center;
-                        gap: 10px;
-                        margin-bottom: 20px;
-                    }
+            {/* Formulario Principal */}
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "bold" }}>
+              Enviar Mensaje
+            </h2>
+            <input
+              type="text"
+              placeholder="Nombre del Alumno"
+              value={formData.nombre}
+              onChange={(e) =>
+                setFormData({ ...formData, nombre: e.target.value })
+              }
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              placeholder="Celular"
+              value={formData.celular}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  celular: cleanCelular(e.target.value),
+                })
+              }
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              placeholder="Profesor"
+              value={formData.profesor}
+              onChange={(e) =>
+                setFormData({ ...formData, profesor: e.target.value })
+              }
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              placeholder="Link"
+              value={formData.link}
+              onChange={(e) =>
+                setFormData({ ...formData, link: e.target.value })
+              }
+              style={inputStyle}
+            />
+            <select
+              value={formData.sesion}
+              onChange={(e) =>
+                setFormData({ ...formData, sesion: e.target.value })
+              }
+              style={inputStyle}
+            >
+              <option value="Onboarding">Onboarding</option>
+              <option value="Taller">Taller</option>
+              <option value="Level Closure">Level Closure</option>
+              <option value="Apoyo Académico">Apoyo Académico</option>
+            </select>
+            <button
+              onClick={handleSend}
+              style={buttonStyle("#FF7F50")}
+            >
+              Enviar Mensaje
+            </button>
 
-                    .main-buttons button, .additional-buttons button {
-                        flex: 1 0 22%;
-                        max-width: 100px;
-                    }
+            {/* Mini Consola */}
+            <div
+              style={{
+                marginTop: "20px",
+                backgroundColor: "#333",
+                color: "#0F0",
+                padding: "10px",
+                borderRadius: "8px",
+                height: "100px",
+                overflowY: "auto",
+                textAlign: "left",
+              }}
+            >
+              {consoleOutput.map((line, index) => (
+                <p key={index} style={{ margin: 0 }}>
+                  {line}
+                </p>
+              ))}
+            </div>
 
-                    .grid-section {
-                        display: flex;
-                        justify-content: space-between;
-                        gap: 20px;
-                        margin-bottom: 20px;
-                    }
-
-                    .left-column, .right-column {
-                        flex: 1;
-                    }
-
-                    .left-column button {
-                        display: block;
-                        width: 100%;
-                        margin-bottom: 10px;
-                    }
-
-                    .right-column button {
-                        display: block;
-                        width: 100%;
-                        margin-bottom: 20px;
-                    }
-
-                    input[type="text"], input[type="email"], button, select {
-                        width: 100%;
-                        padding: 10px;
-                        margin: 10px 0;
-                        box-sizing: border-box;
-                        border-radius: 5px;
-                        border: 1px solid #ccc;
-                    }
-
-                    button {
-                        background-color: #ff7f50;
-                        color: white;
-                        border: none;
-                        cursor: pointer;
-                    }
-
-                    button:hover {
-                        background-color: #e06a3d;
-                    }
-
-                    .additional-buttons .webmail { background-color: #ff7f50; }
-                    .additional-buttons .reloj-control { background-color: #95CEEB; }
-                    .left-column .messagebird { background-color: #0000FF; }
-                    .left-column .serpo { background-color: #FF6380; }
-                    .left-column .drive { background-color: #32CD32; }
-                    .left-column .active-campaign { background-color: #007BFF; color: white; }
-
-                    .additional-buttons button:hover,
-                    .left-column button:hover,
-                    .right-column button:hover {
-                        opacity: 0.9;
-                    }
-
-                    .form-selection button {
-                    width: 100px;
-                    margin: 10px;
-                    padding: 10px;
-                    font-size: 12px;
-                    margin-bottom: 5cm; /* Separación del borde inferior */
+            {/* Nuevo Botón */}
+            <a
+              href="https://docs.google.com/spreadsheets/d/1Stu6xH_tgvEhkkEmj5lV3jTVyDzkHEslCrobHNW6cR0/edit?gid=0#gid=0"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "block",
+                marginTop: "20px",
+                backgroundColor: "#4CAF50",
+                color: "white",
+                textAlign: "center",
+                padding: "10px",
+                borderRadius: "8px",
+                textDecoration: "none",
+              }}
+            >
+              Respaldo de Envios y Respuesta
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-                    .logo {
-                        max-width: 150px;
-                        margin: 0 auto 20px;
-                    }
-                `}</style>
-            </Head>
-            <main>
-                <div className="container">
-                    <img src="https://bestwork.cl/wp-content/uploads/2023/05/Logo.png" alt="Best Work Logo" className="logo" />
-                    <h2>Bienvenida a tu Panel de Trabajo</h2>
+const inputStyle = {
+  border: "2px solid #60A5FA",
+  padding: "10px",
+  borderRadius: "8px",
+  marginBottom: "10px",
+  width: "calc(100% - 24px)",
+};
 
-                    {/* Botones principales */}
-                    <div className="main-buttons">
-                        <button onClick={() => openExternal('https://www.riddle.com/view/357576')}>Test Posiciona</button>
-                        <button onClick={() => openExternal('https://www.youtube.com/watch?time_continue=9&v=ws7VZnz70Ec')}>Video Campus</button>
-                        <button onClick={() => openExternal('https://drive.google.com/drive/folders/1efbd3lupHso7R7uiJbUZhQJgZZFOYe4h')}>Imágenes Apoyo</button>
-                        <button onClick={() => openExternal('https://mensajes-adm.vercel.app/')}>Soporte Académico</button>
-                        <button onClick={() => openExternal('https://www.flow.cl/app/web/pagarBtnPago.php?token=wtw8dvv')}>Pago $39.990</button>
-                        <button onClick={() => openExternal('https://www.flow.cl/btn.php?token=uk6tvce')}>Pago $29.990</button>
-                        <button onClick={() => openExternal('https://www.flow.cl/btn.php?token=y0hliy3')}>Pago $20.000</button>
-                        <button onClick={() => openExternal('https://www.flow.cl/btn.php?token=qd9nyjy')}>Pago Oral Placement</button>
-                    </div>
-
-                    {/* Sección de botones en dos columnas */}
-                    <div className="grid-section">
-                        <div className="left-column">
-                            <button className="messagebird" onClick={() => openExternal('https://inbox.messagebird.com/workspace')}>MESSAGEBIRD</button>
-                            <button className="serpo" onClick={() => openExternal('https://ventab.serpo.cl/inicio/bestwork')}>SERPO</button>
-                            <button className="drive" onClick={() => openExternal('https://drive.google.com/drive/folders/1_u7MwZwVaBiJh4eoJdV7JPBGrJCco57h')}>DRIVE</button>
-                            <button className="active-campaign" onClick={() => openExternal('https://sedsa.activehosted.com/')}>ACTIVE CAMPAIGN</button>
-                        </div>
-                        <div className="right-column">
-                            <button className="webmail" onClick={() => openExternal('https://www.bestwork.cl:2096/')}>WEBMAIL</button>
-                            <button className="reloj-control" onClick={() => openExternal('https://trabajador.relojcontrol.com')}>RELOJ CONTROL</button>
-                        </div>
-                    </div>
-
-                    {/* Formulario de búsqueda */}
-                    <form onSubmit={handleSearch}>
-                        <h3>Verifica correo del contacto para ingresar a los formularios</h3>
-                        <h5>REFERIDOS - BIENVENIDA - ONBOARDING</h5>
-                        <input
-                            type="email"
-                            placeholder="Introduce el correo"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                        <button type="submit">Buscar</button>
-                    </form>
-
-                    {/* Resultados */}
-                    <div>
-                        <p>{result}</p>
-                        {showCopy && <button onClick={copyEmail}>Copiar correo</button>}
-                    </div>
-
-                    {/* Selección de formularios */}
-                    {showFormSelection && (
-                        <div className="form-selection">
-                            <button onClick={() => showForm('https://sedsa.activehosted.com/f/38')}>REFERIDOS</button>
-                            <button onClick={() => showForm('https://sedsa.activehosted.com/f/114')}>BIENVENIDA</button>
-                            <button onClick={() => showForm('https://calendly.com/onboarding_bestwork/onboarding')}>ONBOARDING</button>
-                        </div>
-                    )}
-                </div>
-            </main>
-        </>
-    );
-}
+const buttonStyle = (color) => ({
+  backgroundColor: color,
+  color: "white",
+  padding: "10px 20px",
+  borderRadius: "8px",
+  cursor: "pointer",
+  width: "100%",
+});
